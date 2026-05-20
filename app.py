@@ -1,43 +1,7 @@
 import streamlit as st
 
-# --- APPLICATION SETTINGS & CUSTOM STYLES ---
+# --- APPLICATION SETTINGS ---
 st.set_page_config(page_title="QFIS MUN 2026 - Evaluation App", layout="wide", page_icon="🌐")
-
-st.markdown("""
-    <style>
-    .stButton>button {
-        width: 100%;
-        height: 60px;
-        font-size: 20px !important;
-        font-weight: bold;
-        margin: 5px 0px;
-        border-radius: 10px;
-    }
-    .minus-btn>div>button {
-        background-color: #ff4b4b !important;
-        color: white !important;
-        height: 40px !important;
-        font-size: 14px !important;
-    }
-    .delegate-card {
-        padding: 15px;
-        border-radius: 10px;
-        background-color: #f0f2f6;
-        margin-bottom: 15px;
-        border-left: 5px solid #1f77b4;
-    }
-    .test-banner {
-        padding: 10px;
-        background-color: #ffeacc;
-        border: 2px dashed #ff9800;
-        border-radius: 5px;
-        text-align: center;
-        font-weight: bold;
-        margin-bottom: 20px;
-        color: #d97706;
-    }
-    </style>
-""", unsafe_allowed_html=True)
 
 # --- ROSTER DATABASE (ANONYMIZED FOR PRIVACY COMPLIANCE) ---
 @st.cache_data
@@ -121,11 +85,11 @@ CRITERIA = {
 }
 
 st.sidebar.title("Application Controls")
-test_mode = st.sidebar.checkbox("🚀 Enable Test Mode / Sandbox", value=False, help="Toggle this on to practice using the app with fictional data without changing real rosters.")
+test_mode = st.sidebar.checkbox("🚀 Enable Test Mode / Sandbox", value=False, help="Toggle this on to practice using the app with fictional data.")
 
 if test_mode:
     committees = TEST_COMMITTEES
-    st.markdown('<div class="test-banner">⚠️ SANDBOX ACTIVE — Fictional delegates loaded. Feel free to click around and test functionality!</div>', unsafe_allowed_html=True)
+    st.info("⚠️ SANDBOX ACTIVE — Fictional delegates loaded. Feel free to click around!")
 else:
     committees = load_mun_data()
 
@@ -145,6 +109,7 @@ for comp, delegates in committees.items():
         if key not in st.session_state.scores[comp]:
             st.session_state.scores[comp][key] = {crit: 0 for crit in CRITERIA.keys()}
 
+# --- MAIN INTERFACE ---
 st.title("QFIS MUN 2026 — Chair's Evaluation Dashboard")
 
 selected_committee = st.selectbox(
@@ -167,16 +132,14 @@ if selected_committee != "-- Select Committee --":
     
     with tab1:
         st.subheader("Tap icons to add a positive mark. Use the small 'Undo' button below to correct a misclick.")
+        st.write("---")
         
         for delegate in committees[selected_committee]:
             del_key = f"Delegate of {delegate['country']}"
             current_marks = st.session_state.scores[selected_committee][del_key]
             
-            st.markdown(f"""
-                <div class="delegate-card">
-                    <span style='font-size:20px; font-weight:bold;'>{delegate['country']}</span>
-                </div>
-            """, unsafe_allowed_html=True)
+            # Using clean native markdown headers instead of experimental custom CSS blocks
+            st.subheader(f"🇺🇳 {delegate['country']}")
             
             cols = st.columns(5)
             for idx, (crit_id, info) in enumerate(CRITERIA.items()):
@@ -185,12 +148,10 @@ if selected_committee != "-- Select Committee --":
                         st.session_state.scores[selected_committee][del_key][crit_id] += 1
                         st.rerun()
                     
-                    st.markdown('<div class="minus-btn">', unsafe_allowed_html=True)
-                    if st.button(f"Undo (-1)", key=f"minus_{del_key}_{crit_id}"):
+                    if st.button(f"Undo ↩️", key=f"minus_{del_key}_{crit_id}"):
                         if current_marks[crit_id] > 0:
                             st.session_state.scores[selected_committee][del_key][crit_id] -= 1
                             st.rerun()
-                    st.markdown('</div>', unsafe_allowed_html=True)
             st.write("---")
 
     with tab2:
@@ -250,5 +211,5 @@ if selected_committee != "-- Select Committee --":
                         else:                 tier = 1
                     
                     tier_labels = {4: "Excellent", 3: "Good", 2: "Satisfactory", 1: "Passable"}
-                    st.markdown(f"- **{info['icon']} {info['label']}**: Tier {tier} — **{tier_labels[tier]}** <span style='color:gray;'>{source}</span>", unsafe_allowed_html=True)
+                    st.markdown(f"- **{info['icon']} {info['label']}**: Tier {tier} — **{tier_labels[tier]}** {source}")
                 st.write("---")
