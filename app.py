@@ -3,7 +3,7 @@ import streamlit as st
 # --- APPLICATION SETTINGS ---
 st.set_page_config(page_title="QFIS MUN 2026 - Evaluation App", layout="wide", page_icon="🌐")
 
-# --- ROSTER DATABASE (FROM SOURCE ATTACHMENT) ---
+# --- ROSTER DATABASE (ANONYMIZED FOR PRIVACY COMPLIANCE) ---
 @st.cache_data
 def load_mun_data():
     return {
@@ -77,19 +77,19 @@ TEST_COMMITTEES = {
 }
 
 CRITERIA = {
-    "policy": {"icon": "🌐", "label": "Policy", "desc": "Representation of country policy and background knowledge."},
-    "speech": {"icon": "🗣️", "label": "Speak", "desc": "Quality, persuasiveness, and formal UN speech delivery."},
-    "neg":    {"icon": "🤝", "label": "Negot", "desc": "Lobbying, bloc building, and diplomacy during caucuses."},
-    "draft":  {"icon": "📝", "label": "Draft", "desc": "Technical formatting, working papers, and clause writing."},
-    "decor":  {"icon": "🎭", "label": "Decor", "desc": "Adherence to rules of procedure and respect for the Dais."}
+    "policy": {"icon": "🌐", "label": "Policy", "desc": "Representation of country policy, nuance, and background knowledge."},
+    "speech": {"icon": "🗣️", "label": "Speaking", "desc": "Quality, persuasiveness, rhetoric, and formal UN speech delivery."},
+    "neg":    {"icon": "🤝", "label": "Negotiation", "desc": "Lobbying, bloc building, inclusivity, and diplomacy during unmoderated caucus."},
+    "draft":  {"icon": "📝", "label": "Drafting", "desc": "Technical formatting, working papers, amendments, and clause writing."},
+    "decor":  {"icon": "🎭", "label": "Decorum", "desc": "Adherence to rules of procedure, respect for the Dais, and overall committee participation."}
 }
 
 st.sidebar.title("Application Controls")
-test_mode = st.sidebar.checkbox("🚀 Enable Test Mode / Sandbox", value=False)
+test_mode = st.sidebar.checkbox("🚀 Enable Test Mode / Sandbox", value=False, help="Toggle this on to practice using the app with fictional data.")
 
 if test_mode:
     committees = TEST_COMMITTEES
-    st.info("⚠️ SANDBOX ACTIVE — Fictional test data loaded.")
+    st.info("⚠️ SANDBOX ACTIVE — Fictional delegates loaded. Feel free to click around!")
 else:
     committees = load_mun_data()
 
@@ -110,7 +110,7 @@ for comp, delegates in committees.items():
             st.session_state.scores[comp][key] = {crit: 0 for crit in CRITERIA.keys()}
 
 # --- MAIN INTERFACE ---
-st.title("QFIS MUN 2026 — Evaluation Dashboard")
+st.title("QFIS MUN 2026 — Chair's Evaluation Dashboard")
 
 selected_committee = st.selectbox(
     "👉 Select Your Assigned Committee:", 
@@ -119,48 +119,54 @@ selected_committee = st.selectbox(
 
 if selected_committee != "-- Select Committee --":
     
-    with st.expander("ℹ️ Full Rubric Definitions (Click to expand)"):
-        for key, info in CRITERIA.items():
-            st.markdown(f"**{info['icon']} {info['label']}:** {info['desc']}")
+    with st.expander("ℹ️ Full Rubric Criteria Definitions (Click to expand)"):
+        cols = st.columns(5)
+        for i, (key, info) in enumerate(CRITERIA.items()):
+            with cols[i]:
+                st.markdown(f"### {info['icon']} {info['label']}")
+                st.caption(info['desc'])
 
-    st.header(f"Active Session: {selected_committee}")
+    st.header(f"Active Committee Session: {selected_committee}")
     
     tab1, tab2 = st.tabs(["📊 Live Assessment Tracking", "🏆 Final Profiles & Awards"])
     
     with tab1:
-        st.subheader("Tap headers to log actions. Click 'Undo ↩️' at the bottom of a block if you make a mistake.")
+        st.subheader("Log tracked actions horizontally below. Use 'Undo' to subtract a mistaken click.")
         st.write("---")
         
         for delegate in committees[selected_committee]:
             del_key = f"Delegate of {delegate['country']}"
             current_marks = st.session_state.scores[selected_committee][del_key]
             
+            # Labeling each horizontal delegate section clearly
             st.markdown(f"### 🇺🇳 {delegate['country']}")
             
-            # Using clean rows where labels are directly within button elements to optimize mobile screens
+            # Creating 5 horizontal columns for a compact layout
             cols = st.columns(5)
             for idx, (crit_id, info) in enumerate(CRITERIA.items()):
                 with cols[idx]:
-                    # Main Action Button: Labels are part of the click target so they never stack awkwardly
-                    if st.button(f"{info['icon']} {info['label']}\n\n(+ {current_marks[crit_id]})", key=f"plus_{del_key}_{crit_id}"):
+                    # Display the text label directly above the scoring button
+                    st.markdown(f"**{info['label']}**")
+                    
+                    # Score button
+                    if st.button(f"{info['icon']} +1 ({current_marks[crit_id]})", key=f"plus_{del_key}_{crit_id}"):
                         st.session_state.scores[selected_committee][del_key][crit_id] += 1
                         st.rerun()
-            
-            # A single, separate clear row for clean 'Undo' capability without vertical bloat
-            undo_cols = st.columns(5)
-            for idx, (crit_id, info) in enumerate(CRITERIA.items()):
-                with undo_cols[idx]:
-                    if st.button(f"Undo ↩️", key=f"minus_{del_key}_{crit_id}", help=f"Remove 1 mark from {info['label']}"):
+                    
+                    # Compact undo button directly below
+                    if st.button(f"Undo ↩️", key=f"minus_{del_key}_{crit_id}", help=f"Subtract 1 point from {info['label']}"):
                         if current_marks[crit_id] > 0:
                             st.session_state.scores[selected_committee][del_key][crit_id] -= 1
                             st.rerun()
             st.write("---")
 
     with tab2:
-        st.subheader("Final Rubric Compilation")
+        st.subheader("Final Rubric Compilation & Quality Review")
         
         missing_data = False
         manual_overrides = {}
+        
+        st.markdown("### Manual Review Alerts:")
         
         for delegate in committees[selected_committee]:
             del_key = f"Delegate of {delegate['country']}"
@@ -170,7 +176,7 @@ if selected_committee != "-- Select Committee --":
             
             if zero_criteria:
                 missing_data = True
-                st.warning(f"⚠️ **{del_key}** has 0 marks in: {', '.join(zero_criteria)}")
+                st.warning(f"⚠️ **{del_key}** has 0 recorded actions in: {', '.join(zero_criteria)}")
                 
                 manual_overrides[del_key] = {}
                 m_cols = st.columns(len(zero_criteria))
@@ -178,15 +184,15 @@ if selected_committee != "-- Select Committee --":
                     crit_id = [k for k, v in CRITERIA.items() if v['label'] == crit_label][0]
                     with m_cols[idx]:
                         chosen_tier = st.selectbox(
-                            f"Set {CRITERIA[crit_id]['icon']}",
-                            options=["Select Tier", "4 - Excellent", "3 - Good", "2 - Satisfactory", "1 - Passable"],
+                            f"Assign Tier for {CRITERIA[crit_id]['icon']}",
+                            options=["Select Tier Manually", "4 - Excellent", "3 - Good", "2 - Satisfactory", "1 - Passable"],
                             key=f"override_{del_key}_{crit_id}"
                         )
-                        if chosen_tier != "Select Tier":
+                        if chosen_tier != "Select Tier Manually":
                             manual_overrides[del_key][crit_id] = int(chosen_tier[0])
         
         if not missing_data:
-            st.success("✅ Assessment complete! All parameters tracked.")
+            st.success("✅ Assessment complete! All active delegates have metrics recorded across all five parameters.")
             
         if st.button("🌟 Generate Final Individual Profiles", type="primary"):
             st.write("## 📜 Final Individual Delegate Profiles")
