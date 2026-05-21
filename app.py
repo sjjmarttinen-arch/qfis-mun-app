@@ -77,11 +77,11 @@ TEST_COMMITTEES = {
 }
 
 CRITERIA = {
-    "policy": {"icon": "🌐", "label": "Research & Policy", "desc": "Representation of country policy, nuance, and background knowledge."},
-    "speech": {"icon": "🗣️", "label": "Public Speaking", "desc": "Quality, persuasiveness, rhetoric, and formal UN speech delivery."},
+    "policy": {"icon": "🌐", "label": "Policy", "desc": "Representation of country policy, nuance, and background knowledge."},
+    "speech": {"icon": "🗣️", "label": "Speaking", "desc": "Quality, persuasiveness, rhetoric, and formal UN speech delivery."},
     "neg":    {"icon": "🤝", "label": "Negotiation", "desc": "Lobbying, bloc building, inclusivity, and diplomacy during unmoderated caucus."},
-    "draft":  {"icon": "📝", "label": "Resolution Crafting", "desc": "Technical formatting, working papers, amendments, and clause writing."},
-    "decor":  {"icon": "🎭", "label": "Decorum & Protocol", "desc": "Adherence to rules of procedure, respect for the Dais, and overall committee participation."}
+    "draft":  {"icon": "📝", "label": "Drafting", "desc": "Technical formatting, working papers, amendments, and clause writing."},
+    "decor":  {"icon": "🎭", "label": "Decorum", "desc": "Adherence to rules of procedure, respect for the Dais, and overall committee participation."}
 }
 
 st.sidebar.title("Application Controls")
@@ -119,7 +119,7 @@ selected_committee = st.selectbox(
 
 if selected_committee != "-- Select Committee --":
     
-    with st.expander("ℹ️ Icon Guide & Rubric Criteria Definitions (Click to expand)"):
+    with st.expander("ℹ️ Full Rubric Criteria Definitions (Click to expand)"):
         cols = st.columns(5)
         for i, (key, info) in enumerate(CRITERIA.items()):
             with cols[i]:
@@ -131,24 +131,30 @@ if selected_committee != "-- Select Committee --":
     tab1, tab2 = st.tabs(["📊 Live Assessment Tracking", "🏆 Final Profiles & Awards"])
     
     with tab1:
-        st.subheader("Tap icons to add a positive mark. Use the small 'Undo' button below to correct a misclick.")
+        st.subheader("Log tracked actions horizontally below. Use 'Undo' to subtract a mistaken click.")
         st.write("---")
         
         for delegate in committees[selected_committee]:
             del_key = f"Delegate of {delegate['country']}"
             current_marks = st.session_state.scores[selected_committee][del_key]
             
-            # Using clean native markdown headers instead of experimental custom CSS blocks
-            st.subheader(f"🇺🇳 {delegate['country']}")
+            # Labeling each horizontal delegate section clearly
+            st.markdown(f"### 🇺🇳 {delegate['country']}")
             
+            # Creating 5 horizontal columns for a compact layout
             cols = st.columns(5)
             for idx, (crit_id, info) in enumerate(CRITERIA.items()):
                 with cols[idx]:
+                    # Display the text label directly above the scoring button
+                    st.markdown(f"**{info['label']}**")
+                    
+                    # Score button
                     if st.button(f"{info['icon']} +1 ({current_marks[crit_id]})", key=f"plus_{del_key}_{crit_id}"):
                         st.session_state.scores[selected_committee][del_key][crit_id] += 1
                         st.rerun()
                     
-                    if st.button(f"Undo ↩️", key=f"minus_{del_key}_{crit_id}"):
+                    # Compact undo button directly below
+                    if st.button(f"Undo ↩️", key=f"minus_{del_key}_{crit_id}", help=f"Subtract 1 point from {info['label']}"):
                         if current_marks[crit_id] > 0:
                             st.session_state.scores[selected_committee][del_key][crit_id] -= 1
                             st.rerun()
